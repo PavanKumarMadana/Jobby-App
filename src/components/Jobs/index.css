@@ -162,3 +162,13 @@
   padding: 10px 20px;
   cursor: pointer;
 }
+.side-bar {
+  position: sticky;
+  top: 80px;
+  height: fit-content;
+}
+.header-container {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}

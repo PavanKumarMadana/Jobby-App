@@ -24,6 +24,7 @@ class Jobs extends Component {
     searchInput: '',
     activeEmploymentTypes: [],
     activeSalaryRange: '',
+    activeLocations: [], // ✅ ADDED
   }
 
   componentDidMount() {
@@ -58,14 +59,25 @@ class Jobs extends Component {
 
   getJobs = async () => {
     this.setState({jobsApiStatus: apiStatusConstants.inProgress})
-    const {activeEmploymentTypes, activeSalaryRange, searchInput} = this.state
+
+    const {
+      activeEmploymentTypes,
+      activeSalaryRange,
+      searchInput,
+      activeLocations, // ✅ ADDED
+    } = this.state
+
     const employmentType = activeEmploymentTypes.join(',')
+    const location = activeLocations.join(',') // ✅ ADDED
+
     const jwtToken = Cookies.get('jwt_token')
-    const url = `https://apis.ccbp.in/jobs?employment_type=${employmentType}&minimum_package=${activeSalaryRange}&search=${searchInput}`
+    const url = `https://apis.ccbp.in/jobs?employment_type=${employmentType}&minimum_package=${activeSalaryRange}&search=${searchInput}&location_type=${location}`
+
     const options = {
       headers: {Authorization: `Bearer ${jwtToken}`},
       method: 'GET',
     }
+
     const response = await fetch(url, options)
     if (response.ok) {
       const data = await response.json()
@@ -101,6 +113,7 @@ class Jobs extends Component {
   updateEmploymentType = event => {
     const {activeEmploymentTypes} = this.state
     const {value} = event.target
+
     if (activeEmploymentTypes.includes(value)) {
       this.setState(
         prev => ({
@@ -122,6 +135,28 @@ class Jobs extends Component {
 
   updateSalaryRange = event => {
     this.setState({activeSalaryRange: event.target.value}, this.getJobs)
+  }
+
+  // ✅ NEW FUNCTION
+  updateLocation = event => {
+    const {activeLocations} = this.state
+    const {value} = event.target
+
+    if (activeLocations.includes(value)) {
+      this.setState(
+        prev => ({
+          activeLocations: prev.activeLocations.filter(each => each !== value),
+        }),
+        this.getJobs,
+      )
+    } else {
+      this.setState(
+        prev => ({
+          activeLocations: [...prev.activeLocations, value],
+        }),
+        this.getJobs,
+      )
+    }
   }
 
   renderLoadingView = () => (
@@ -163,12 +198,20 @@ class Jobs extends Component {
   }
 
   renderJobsListView = () => {
-    const {jobsList, jobsApiStatus} = this.state
+    const {jobsList, jobsApiStatus, activeLocations} = this.state
+
+    let filteredJobs = jobsList
+
+    if (activeLocations.length > 0) {
+      filteredJobs = jobsList.filter(each =>
+        activeLocations.includes(each.location),
+      )
+    }
     switch (jobsApiStatus) {
       case apiStatusConstants.inProgress:
         return this.renderLoadingView()
       case apiStatusConstants.success:
-        if (jobsList.length === 0) {
+        if (filteredJobs.length === 0) {
           return (
             <div className="no-jobs-view">
               <img
@@ -183,7 +226,7 @@ class Jobs extends Component {
         }
         return (
           <ul className="jobs-list">
-            {jobsList.map(each => (
+            {filteredJobs.map(each => (
               <li key={each.id} className="job-item">
                 <Link to={`/jobs/${each.id}`} className="link-item">
                   <div className="logo-title-container">
@@ -249,7 +292,10 @@ class Jobs extends Component {
         <div className="jobs-content">
           <div className="side-bar">
             {this.renderProfileView()}
+
             <hr className="hr-line" />
+
+            {/* Employment */}
             <h1 className="filter-heading">Type of Employment</h1>
             <ul className="filter-list">
               {employmentTypesList.map(each => (
@@ -264,7 +310,10 @@ class Jobs extends Component {
                 </li>
               ))}
             </ul>
+
             <hr className="hr-line" />
+
+            {/* Salary */}
             <h1 className="filter-heading">Salary Range</h1>
             <ul className="filter-list">
               {salaryRangesList.map(each => (
@@ -280,7 +329,64 @@ class Jobs extends Component {
                 </li>
               ))}
             </ul>
+
+            {/* ✅ LOCATION FILTER */}
+            <hr className="hr-line" />
+            <h1 className="filter-heading">Location</h1>
+
+            <ul className="filter-list">
+              <li className="filter-item">
+                <input
+                  type="checkbox"
+                  id="hyderabad"
+                  value="Hyderabad"
+                  onChange={this.updateLocation}
+                />
+                <label htmlFor="hyderabad">Hyderabad</label>
+              </li>
+
+              <li className="filter-item">
+                <input
+                  type="checkbox"
+                  id="bangalore"
+                  value="Bangalore"
+                  onChange={this.updateLocation}
+                />
+                <label htmlFor="bangalore">Bangalore</label>
+              </li>
+
+              <li className="filter-item">
+                <input
+                  type="checkbox"
+                  id="chennai"
+                  value="Chennai"
+                  onChange={this.updateLocation}
+                />
+                <label htmlFor="chennai">Chennai</label>
+              </li>
+
+              <li className="filter-item">
+                <input
+                  type="checkbox"
+                  id="delhi"
+                  value="Delhi"
+                  onChange={this.updateLocation}
+                />
+                <label htmlFor="delhi">Delhi</label>
+              </li>
+
+              <li className="filter-item">
+                <input
+                  type="checkbox"
+                  id="mumbai"
+                  value="Mumbai"
+                  onChange={this.updateLocation}
+                />
+                <label htmlFor="mumbai">Mumbai</label>
+              </li>
+            </ul>
           </div>
+
           <div className="jobs-list-container">
             <div className="search-input-container">
               <input
@@ -300,6 +406,7 @@ class Jobs extends Component {
                 <BsSearch className="search-icon" />
               </button>
             </div>
+
             {this.renderJobsListView()}
           </div>
         </div>
